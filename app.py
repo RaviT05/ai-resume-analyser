@@ -5,52 +5,65 @@ from dotenv import load_dotenv
 import os
 import io
 
-# Load environment variables
 load_dotenv()
-
-# Configure Groq
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-st.title("AI Resume Analyser 🚀")
-st.write("Upload your resume and get AI powered feedback!")
+# Page config
+st.set_page_config(page_title="AI Resume Analyser", page_icon="🚀")
 
-uploaded_file = st.file_uploader("Upload your Resume (PDF only)", type="pdf")
+# Header
+st.title("🚀 AI Resume Analyser")
+st.write("Upload your resume and get instant AI powered feedback!")
+st.divider()
 
-if uploaded_file is not None:
-    st.success("Resume uploaded successfully! ✅")
+# Input section
+col1, col2 = st.columns(2)
 
-    # Read the PDF
-    pdf_reader = PyPDF2.PdfReader(io.BytesIO(uploaded_file.read()))
+with col1:
+    uploaded_file = st.file_uploader("📄 Upload your Resume (PDF only)", type="pdf")
 
-    # Extract text from all pages
-    text = ""
-    for page in pdf_reader.pages:
-        text += page.extract_text()
+with col2:
+    job_role = st.text_input("🎯 Job role you are applying for", placeholder="Ex: ML Engineer, Python Developer")
 
-    st.subheader("Analysing your resume... please wait ⏳")
+st.divider()
 
-    # Send to Groq AI
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {
-                "role": "user",
-                "content": f"""Analyse this resume and give feedback in this exact format:
+# Analyse button
+if st.button("⚡ Analyse My Resume", use_container_width=True):
+    if uploaded_file is None:
+        st.warning("Please upload your resume first!")
+    elif job_role == "":
+        st.warning("Please enter the job role you are applying for!")
+    else:
+        # Read PDF
+        pdf_reader = PyPDF2.PdfReader(io.BytesIO(uploaded_file.read()))
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text()
+
+        with st.spinner("AI is analysing your resume... please wait ⏳"):
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": f"""Analyse this resume for the role of {job_role} and give feedback in this exact format:
 
 1. STRENGTHS (3 points)
 2. WEAKNESSES (3 points)
-3. SKILL GAPS (what skills are missing)
+3. SKILL GAPS (skills missing for {job_role})
 4. OVERALL SCORE (out of 10)
 5. ONE TIP TO IMPROVE
 
 Resume text:
 {text}"""
-            }
-        ]
-    )
+                    }
+                ]
+            )
 
-    st.subheader("AI Feedback on your Resume 🤖")
-    st.write(response.choices[0].message.content)
+        st.success("Analysis complete! ✅")
+        st.divider()
+        st.subheader("🤖 AI Feedback on your Resume")
+        st.write(response.choices[0].message.content)
 
-else:
-    st.info("Please upload your resume PDF above.")
+st.divider()
+st.caption("Built with Python, Streamlit and Groq AI 🔥")
